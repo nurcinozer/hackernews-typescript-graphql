@@ -9,9 +9,11 @@ export const Link = objectType({
     t.nonNull.int("id"); // 3 This adds a field named id of type Int
     t.nonNull.string("description"); // 4 This adds a field named description of type String
     t.nonNull.string("url"); // 5 This adds a field named url of type String
-    t.field("postedBy", { // You are adding a postedBy field of type User. Notice this field does not have a nonNull attached, meaning it is an optional field (it can return null).
+    t.field("postedBy", {
+      // You are adding a postedBy field of type User. Notice this field does not have a nonNull attached, meaning it is an optional field (it can return null).
       type: "User",
-      resolve(parent, args, context) { // The implementaiton of the resolver for postedBy should feel familiar, as it is very similar to what you did for the links field in User. In the query, you are fetching the link record first using findUnique({ where: { id: parent.id } }) and then the associated user relation who posted the link by chaining postedBy().
+      resolve(parent, args, context) {
+        // The implementaiton of the resolver for postedBy should feel familiar, as it is very similar to what you did for the links field in User. In the query, you are fetching the link record first using findUnique({ where: { id: parent.id } }) and then the associated user relation who posted the link by chaining postedBy().
         return context.prisma.link
           .findUnique({ where: { id: parent.id } })
           .postedBy();
@@ -62,11 +64,17 @@ export const LinkMutation = extendType({
         // };
         // links.push(link);
         // return link;
+        const { description, url } = args;
+        const { userId } = context;
+        if (!userId) {
+          throw new Error("Cannot post without logging in.");
+        }
         const newLink = context.prisma.link.create({
           // Similar to the feed resolver, you’re simply invoking a function on the PrismaClient instance. You’re calling the create method on the Link model from your Prisma Client API. As arguments, you’re passing the data that the resolvers receive via the args parameter.
           data: {
             description: args.description,
             url: args.url,
+            postedBy: { connect: { id: userId } },
           },
         });
         return newLink;
